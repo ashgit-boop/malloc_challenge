@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include<limits.h>
 
 //
 // Interfaces to get memory pages from OS
@@ -44,7 +45,8 @@ typedef struct my_heap_t {
 //
 // Static variables (DO NOT ADD ANOTHER STATIC VARIABLES!)
 //
-my_heap_t my_heap;
+//my_heap_t my_heap;
+my_heap_t my_heap[5]; // free list binを作成0~4の添え字になること想定(size/1000を添え字にして分けてみる)
 
 //
 // Helper functions (feel free to add/remove/edit!)
@@ -53,17 +55,23 @@ my_heap_t my_heap;
 
 // 開いた領域のメタデータを受け取り、空きリストに追加
 void my_add_to_free_list(my_metadata_t *metadata) {
+  int idx; // free list binの添え字をidxとする
   assert(!metadata->next);
-  metadata->next = my_heap.free_head; // 先頭に（から）追加していくイメージ
-  my_heap.free_head = metadata;
+  idx = metadata->size / 1000;
+  metadata->next = my_heap[idx].free_head;
+  my_heap[idx].free_head = metadata;
+  //metadata->next = my_heap.free_head; // 先頭に（から）追加していくイメージ
+  //my_heap.free_head = metadata;
 }
 
 // free_listに入っていたメタデータを（使うことになったから）空きリストから削除する
 void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
+  int idx;
   if (prev) { // もし消すやつが先頭じゃなくてprevがいれば
     prev->next = metadata->next;
   } else {
-    my_heap.free_head = metadata->next;
+    idx = metadata->size / 100;
+    my_heap[idx].free_head = metadata->next;
   }
   metadata->next = NULL;
 }
@@ -74,32 +82,40 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
 // This is called at the beginning of each challenge.
 void my_initialize() {
-  my_heap.free_head = &my_heap.dummy;
-  my_heap.dummy.size = 0;
-  my_heap.dummy.next = NULL;
-}
+  for(int idx=0;idx<5;idx++){
+  my_heap[idx].free_head = &my_heap[idx].dummy;
+  my_heap[idx].dummy.size = 0;
+  my_heap[idx].dummy.next = NULL;
+  }
+} 
 
 // my_malloc() is called every time an object is allocated.
 // |size| is guaranteed to be a multiple of 8 bytes and meets 8 <= |size| <=
 // 4000. You are not allowed to use any library functions other than
 // mmap_from_system() / munmap_to_system().
 void *my_malloc(size_t size) {
-  my_metadata_t *metadata = my_heap.free_head;
+  my_metadata_t *metadata; //= my_heap.free_head;
   my_metadata_t *prev = NULL;
   my_metadata_t *min_metadata = NULL;
   my_metadata_t *min_prev = NULL;
-  int min_size = 4096;
+  int min_size = INT_MAX; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
+  int idx;
 
+  idx = size / 1000;
+  metadata = my_heap[idx].free_head;
+  //printf("idx:%d\n",idx);
   //min_metadata = metadata;
 
   // First-fit: Find the first free slot the object fits.
   // TODO: Update this logic to Best-fit!
-  // first fit
+/*
+  while (metadata && metadata->size < size) { // metadata(tmp)が存在してmetadataの持つサイズが指定されたサイズよりも小さい間移動させる。(first fit)
+    prev = metadata;
+    metadata = metadata->next;
+  }*/
 
 
-
-
-  // best fit // 恐らくスピードは落ちる（最後まで見ていって最小のサイズのものを見つけるから）、Utilizationはさすがに上がってほしい...
+  // best fit // 恐らくスピードは落ちる（最後まで見ていって最小のサイズのものを見つけるから）、Utilizationは上がってほしい...
   while (metadata ) { // metadata(tmp)が存在してmetadataの持つサイズが指定されたサイズよりも小さい間移動させる。(first fit)
     if(size <= metadata->size && metadata->size < min_size){ // この最初の条件size <= metadata->sizeを忘れると正しい大きさのメモリ確保ができない
       min_prev = prev;

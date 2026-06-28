@@ -45,6 +45,7 @@ typedef struct my_heap_t {
 // Static variables (DO NOT ADD ANOTHER STATIC VARIABLES!)
 //
 my_heap_t my_heap;
+// my_heap_t my_heap[5];
 
 //
 // Helper functions (feel free to add/remove/edit!)
@@ -53,7 +54,9 @@ my_heap_t my_heap;
 
 // 開いた領域のメタデータを受け取り、空きリストに追加
 void my_add_to_free_list(my_metadata_t *metadata) {
+  //int idx; // free list binの添え字をidxとする
   assert(!metadata->next);
+  // idx = metadata->size / 1000
   metadata->next = my_heap.free_head; // 先頭に（から）追加していくイメージ
   my_heap.free_head = metadata;
 }
@@ -88,18 +91,20 @@ void *my_malloc(size_t size) {
   my_metadata_t *prev = NULL;
   my_metadata_t *min_metadata = NULL;
   my_metadata_t *min_prev = NULL;
-  int min_size = 4096;
+  int min_size = 4096; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
 
   //min_metadata = metadata;
 
   // First-fit: Find the first free slot the object fits.
   // TODO: Update this logic to Best-fit!
-  // first fit
+
+  while (metadata && metadata->size < size) { // metadata(tmp)が存在してmetadataの持つサイズが指定されたサイズよりも小さい間移動させる。(first fit)
+    prev = metadata;
+    metadata = metadata->next;
+  }
 
 
-
-
-  // best fit // 恐らくスピードは落ちる（最後まで見ていって最小のサイズのものを見つけるから）、Utilizationはさすがに上がってほしい...
+  // best fit // 恐らくスピードは落ちる（最後まで見ていって最小のサイズのものを見つけるから）、Utilizationは上がってほしい...
   while (metadata ) { // metadata(tmp)が存在してmetadataの持つサイズが指定されたサイズよりも小さい間移動させる。(first fit)
     if(size <= metadata->size && metadata->size < min_size){ // この最初の条件size <= metadata->sizeを忘れると正しい大きさのメモリ確保ができない
       min_prev = prev;

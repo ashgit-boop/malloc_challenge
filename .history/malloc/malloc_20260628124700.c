@@ -88,7 +88,7 @@ void *my_malloc(size_t size) {
   my_metadata_t *prev = NULL;
   my_metadata_t *min_metadata = NULL;
   my_metadata_t *min_prev = NULL;
-  int min_size = 4096;
+  int min_size = 4096; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
 
   //min_metadata = metadata;
 
@@ -96,7 +96,10 @@ void *my_malloc(size_t size) {
   // TODO: Update this logic to Best-fit!
   // first fit
 
-
+  while (metadata && metadata->size < size) { // metadata(tmp)が存在してmetadataの持つサイズが指定されたサイズよりも小さい間移動させる。(first fit)
+    prev = metadata;
+    metadata = metadata->next;
+  }
 
 
   // best fit // 恐らくスピードは落ちる（最後まで見ていって最小のサイズのものを見つけるから）、Utilizationはさすがに上がってほしい...

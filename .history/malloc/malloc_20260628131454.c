@@ -96,7 +96,10 @@ void *my_malloc(size_t size) {
   // TODO: Update this logic to Best-fit!
   // first fit
 
-
+  while (metadata && metadata->size < size) { // metadata(tmp)が存在してmetadataの持つサイズが指定されたサイズよりも小さい間移動させる。(first fit)
+    prev = metadata;
+    metadata = metadata->next;
+  }
 
 
   // best fit // 恐らくスピードは落ちる（最後まで見ていって最小のサイズのものを見つけるから）、Utilizationはさすがに上がってほしい...
