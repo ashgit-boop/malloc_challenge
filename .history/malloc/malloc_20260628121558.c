@@ -116,7 +116,7 @@ void *my_malloc(size_t size) {
   metadata = min_metadata; // metadataをmin_metadataに変更
 
 
-  // now, metadata points to the best free slot
+  // now, metadata points to the first free slot
   // and prev is the previous entry.
 
   if (!metadata) { // metadataがNULLだった
