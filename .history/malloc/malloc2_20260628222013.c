@@ -55,9 +55,9 @@ my_heap_t my_heap[5]; // free list binを作成0~4の添え字になること想
 
 // freeされた領域のメタデータを受け取り、空きリストに追加
 void my_add_to_free_list(my_metadata_t *metadata) {
-  //printf("my_add_to_free_list\n");
-  //printf("metadata:%p\n",metadata);
-  //printf("metadata->size:%ld\n",metadata->size);
+  printf("my_add_to_free_list\n");
+  printf("metadata:%p\n",metadata);
+  printf("metadata->size:%ld\n",metadata->size);
   int idx; // free_list binの添え字をidxとする
 
   //printf("metadata->size:%ld\n",metadata->size);
@@ -65,7 +65,7 @@ void my_add_to_free_list(my_metadata_t *metadata) {
   assert(!metadata->next);
 
   idx = metadata->size / 128;
-  if(idx>= 4){
+  if(idx>=4){
     idx = 4;
   }
   metadata->next = my_heap[idx].free_head;
@@ -74,7 +74,16 @@ void my_add_to_free_list(my_metadata_t *metadata) {
 
   //metadata->next = my_heap.free_head; // 先頭に（から）追加していくイメージ
   //my_heap.free_head = metadata;
-  //printf("my_add_to_free_list finished!!\n");
+  printf("my_add_to_free_list finished!!\n");
+  for (int i = 0; i < 5; i++) {
+    printf("bin%d:", i);
+    my_metadata_t *p = my_heap[i].free_head;
+    while (p != &my_heap[i].dummy) {
+        printf(" %zu", p->size);
+        p = p->next;
+    }
+    printf("\n");
+}
 }
 
 // free_listに入っていたメタデータを（使うことになったから）空きリストから削除する
@@ -87,7 +96,7 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
   } 
   else {
     idx = metadata->size / 128;
-    if(idx>=4){
+    if(idx >= 4){
       idx = 4;
     }
     my_heap[idx].free_head = metadata->next;
@@ -135,18 +144,19 @@ void *my_malloc(size_t size) {
   my_metadata_t *min_metadata = NULL;
   my_metadata_t *min_prev = NULL;
   int min_size = INT_MAX; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
-  int index;
-  
-  index=size / 128;
-  if(index >= 4){
-    index = 4;
+  int idx;
+
+  idx = size / 128;
+
+  if(idx >= 4){
+    idx = 4;
   }
 
-  //printf("1\n");
-  for(int idx=index;idx<5;idx++){
+  printf("1\n");
+  for(idx;idx<5;idx++){
     metadata = my_heap[idx].free_head;
     //printf("metadata:%p\n",metadata);
-    //printf("idx:%d\n",idx);
+    printf("idx:%d\n",idx);
     prev = NULL;
     min_prev = NULL;
     int best_fit_found = 0; // bestfitが見つかった時に1、見つかっていないときには０
@@ -171,24 +181,24 @@ void *my_malloc(size_t size) {
         min_size = min_metadata->size;
         best_fit_found = 1; // このリストの中でfitするものは一応見つかった
         //printf("size:%ld\n",size);
-        //printf("found\n");
+        printf("found\n");
         //break;
         //printf("idx:%d\n",idx);
-        //printf("min_size:%d\n",min_size);
+        printf("min_size:%d\n",min_size);
       }  
       prev = metadata;
       metadata = metadata->next;
     }
     //printf("idx:%d\n",idx);
     if (best_fit_found == 1){// もしbest_fitが見つかっていたらfor文を抜ける
-      //printf("break\n");
+      printf("break\n");
       break;
     }
   }// for文抜け
   //printf("min_size:%ld\n",min_size);
   prev = min_prev; // prevをmin_metadataのprevに変更
   metadata = min_metadata; // metadataをmin_metadataに変更
-  //printf("for文抜け、metadata:%p\n",metadata);
+  printf("for文抜け、metadata:%p\n",metadata);
 
   // now, metadata points to the best free slot
   // and prev is the previous entry.
@@ -208,7 +218,7 @@ void *my_malloc(size_t size) {
     metadata->size = buffer_size - sizeof(my_metadata_t); // metadataの分だけサイズを除く
     metadata->next = NULL;
     // Add the memory region to the free list.
-    //printf("before my_add_to_list  metadata->size : %ld\n",metadata->size);
+    printf("before my_add_to_list  metadata->size : %ld\n",metadata->size);
     my_add_to_free_list(metadata); // ここは一度しか呼ばれていない
     // Now, try my_malloc() again. This should succeed.
     return my_malloc(size);
