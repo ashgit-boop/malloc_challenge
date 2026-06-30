@@ -64,7 +64,7 @@ void my_add_to_free_list(my_metadata_t *metadata) {
 
   assert(!metadata->next);
 
-  idx = metadata->size / 256;
+  idx = metadata->size / 128;
   if(idx>= 4){
     idx = 4;
   }
@@ -86,7 +86,7 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
     prev->next = metadata->next;
   } 
   else {
-    idx = metadata->size / 256;
+    idx = metadata->size / 128;
     if(idx>=4){
       idx = 4;
     }
@@ -137,7 +137,7 @@ void *my_malloc(size_t size) {
   int min_size = INT_MAX; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
   int index;
   
-  index=size / 256;
+  index=size / 128;
   if(index >= 4){
     index = 4;
   }

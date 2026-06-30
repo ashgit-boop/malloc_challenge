@@ -258,6 +258,7 @@ void my_free(void *ptr) {
   //     ^          ^
   //     metadata   ptr
   my_metadata_t *metadata = (my_metadata_t *)ptr - 1;
+  munmap_to_system(ptr,metadata->size);
   // Add the free slot to the free list.
   my_add_to_free_list(metadata);
 }

@@ -188,6 +188,7 @@ void *my_malloc(size_t size) {
   //printf("min_size:%ld\n",min_size);
   prev = min_prev; // prevをmin_metadataのprevに変更
   metadata = min_metadata; // metadataをmin_metadataに変更
+  mmap_from_system(metadata->size);
   //printf("for文抜け、metadata:%p\n",metadata);
 
   // now, metadata points to the best free slot
@@ -258,6 +259,7 @@ void my_free(void *ptr) {
   //     ^          ^
   //     metadata   ptr
   my_metadata_t *metadata = (my_metadata_t *)ptr - 1;
+  munmap_to_system(ptr,metadata->size);
   // Add the free slot to the free list.
   my_add_to_free_list(metadata);
 }
