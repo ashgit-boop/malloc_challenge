@@ -52,6 +52,7 @@ my_heap_t my_heap[5]; // free list binを作成0~4の添え字になること想
 // Helper functions (feel free to add/remove/edit!)
 //
 
+void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev);
 
 // freeされた領域のメタデータを受け取り、空きリストに追加
 void my_add_to_free_list(my_metadata_t *metadata) {
@@ -68,14 +69,38 @@ void my_add_to_free_list(my_metadata_t *metadata) {
   if(idx>= 4){
     idx = 4;
   }
-  metadata->next = my_heap[idx].free_head;
+  metadata->next = my_heap[idx].free_head; // 先頭に（から）追加していくイメージ
   my_heap[idx].free_head = metadata;
+
+  my_metadata_t *tmp_metadata ;
+  my_metadata_t *prev_metadata;
+  my_metadata_t *next_metadata ;
+
+  next_metadata = metadata->next;
+  prev_metadata = metadata;
+
+  // 右側マージ // 多分このfor文の一番右側の条件がセグフォの犯人?
+  for(tmp_metadata = metadata->next; tmp_metadata!= &my_heap[idx].dummy;tmp_metadata = next_metadata){ // リストでつながっているmetadataを順に追っていく
+    next_metadata = tmp_metadata->next;
+    // 右隣のマージできそうなものが見つかった
+    if(tmp_metadata == (my_metadata_t*)((char*)metadata + sizeof(*tmp_metadata) + metadata->size)){ // 
+      //sprintf("found\n");
+      metadata->size = metadata->size + tmp_metadata->size; // 左側のmetadataのサイズを更新
+      //printf("before remove\n");
+      my_remove_from_free_list(tmp_metadata,prev_metadata); // 右側にあるメタデータtmpを一度free_listから削除
+      //printf("after remove\n");
+      // サイズを拡張した左側のmetadataも一度削除して入れ直す->更にその右のがつながっているかわかる?->でもこの再帰だと絶対遅い
+      //continue;
+    }
+    //printf("After if \n");
+    prev_metadata = tmp_metadata; // これだけだと次にfor文最初に行ったときにtmp_metadata->nextが存在しなくなる
+  }
+  // 特にマージできそうなやつはなかった
+  return;
   //printf("Finished adding metadata->size:%ld\n",metadata->size);
 
-  //metadata->next = my_heap.free_head; // 先頭に（から）追加していくイメージ
-  //my_heap.free_head = metadata;
-  //printf("my_add_to_free_list finished!!\n");
 }
+
 
 // free_listに入っていたメタデータを（使うことになったから）空きリストから削除する
 void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
@@ -158,8 +183,6 @@ void *my_malloc(size_t size) {
     //printf("size:%ld\n",size);
     //printf("before while\n");
 
-    // ここが毎回idx=4になるまで呼ばれるくせに最後for文出た時はmetadata == nullになっている...
-
     while (metadata!=NULL) { 
       //printf("while start\n");
       //printf("metadata->size:%ld\n",metadata->size);
@@ -186,15 +209,16 @@ void *my_malloc(size_t size) {
     }
   }// for文抜け
   //printf("min_size:%ld\n",min_size);
+
   prev = min_prev; // prevをmin_metadataのprevに変更
   metadata = min_metadata; // metadataをmin_metadataに変更
-  mmap_from_system(metadata->size);
-  //printf("for文抜け、metadata:%p\n",metadata);
+
+  //mmap_from_system(metadata->size); OSからメモリはすでにもらっているから呼ばないか...
 
   // now, metadata points to the best free slot
   // and prev is the previous entry.
 
-  if (!metadata) { // metadataがNULLだった
+  if (!metadata) { // metadataがNULLだった（OSからメモリをもらわなきゃいけない、逆に言えばここ以外でOSからメモリをもらいに行く必要ない...?）
     //printf("metadata was NULL!!\n");
     // There was no free slot available. We need to request a new memory region
     // from the system by calling mmap_from_system().
@@ -259,7 +283,7 @@ void my_free(void *ptr) {
   //     ^          ^
   //     metadata   ptr
   my_metadata_t *metadata = (my_metadata_t *)ptr - 1;
-  munmap_to_system(ptr,metadata->size);
+  //munmap_to_system(ptr,metadata->size); // OSに返すわけではない、あくまで今の確保済みの領域を空き領域に追加するだけ
   // Add the free slot to the free list.
   my_add_to_free_list(metadata);
 }
