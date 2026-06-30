@@ -54,73 +54,6 @@ my_heap_t my_heap[5]; // free list binを作成0~4の添え字になること想
 
 void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev);
 
-int right_merge(my_metadata_t *metadata){
-  //printf("right_merge!!\n");
-  int idx;
-  int merged = 0;
-  my_metadata_t *tmp_metadata ; // リスト上で見ていくときの今見ているノード(今見ているメタデータ)
-  my_metadata_t *prev_metadata; // リスト上でのtmp_metadataの一つ前のノード
-  my_metadata_t *next_metadata; // リスト上でのtmp_metadataの次のノード
-  my_metadata_t *new_metadata; // リスト上での,tmp_metadataが探していた隣合っている空き領域のノードだったとき、metadataのサイズを変える前のノード
-
-  next_metadata = metadata->next; 
-  prev_metadata = metadata;
-  tmp_metadata = next_metadata;
-
-  //printf("finished variables\n");
-  idx = metadata->size / 256;
-  if(idx>= 4){
-    idx = 4;
-  }
-
-  // 右側マージ // 同じbinのリストの中でしか探索していない
-
-  while(tmp_metadata != &my_heap[idx].dummy){ // リストでつながっているmetadataを順に追っていく
-    //printf("after while\n"); // while文にはたくさん入っている
-    
-    if(tmp_metadata == NULL){ // next_metadata = tmp_metadata->next; がセグフォになるから
-      printf("2\n"); // if文に入らないのはここでbreakしているから...->ここのif文の条件がおかしい
-      break;
-    }
-    next_metadata = tmp_metadata->next; // ここでセグフォ -> metadata->next->nextがない...? // next_metadataを用意しているのは、途中でmetadataが削除されるとmetadata->nextはNULLになる(セグフォになった気がする)
-    //printf("after next_metadata update\n");
-    new_metadata = metadata; // 一度初期化しないとセグフォ
-    //printf("1\n");
-    // 右隣のマージできそうなものが見つかった
-
-    // なぜif文に入らない！！？？
-    if(tmp_metadata == (my_metadata_t*)((char*)metadata + sizeof(*metadata) + metadata->size)){ // 今リスト上で確認しているメタデータが、メモリ上でmetadataの右隣にある空き領域のメタデータだったら
-      printf("found\n"); 
-      merged = 1;
-      new_metadata->size = metadata->size + tmp_metadata->size + sizeof(*metadata); // 左側のmetadataのサイズを更新 // これのサイズを変えたら別のidxになるかもだから入れ直さなきゃ..?
-      //printf("new_metadataに更新したサイズを入れた!\n");
-      //new_metadata->next = tmp_metadata -> next;
-      //printf("before remove\n");
-      my_remove_from_free_list(tmp_metadata,prev_metadata); // 右側にあるメタデータtmpをfree_listから削除
-      //printf("after remove1\n"); 
-      new_metadata->next = NULL; // malloc_challenge.bin: malloc3.c:66: my_add_to_free_list: Assertion `!metadata->next' failed.つまりnew_metadataのnextがNULLじゃないってこと?
-      //printf("new_metadata->next = NULL\n");// ここまでで止まる
-      //my_add_to_free_list(new_metadata); // sizeが変わったmetadata=new_metadataをfree_list_binに入れ直す(多分このadd関数は、他のどのリストにも入れるノードが入っていないことが前提だからこのノードがnextを持っていると怒られる)
-      //printf("after add\n"); 
-      //new_metadata->next = tmp_metadata -> next;
-      my_remove_from_free_list(metadata,NULL); // サイズが更新される前のメタデータ、つまりmetadataは削除する。metadataはリストの先頭に入れられるはずだからprevはNULL
-      //printf("after remove2\n");
-
-    }
-    //printf("After if \n");
-    prev_metadata = tmp_metadata; // これだけだと次にfor文最初に行ったときにtmp_metadata->nextが存在しなくなる
-    tmp_metadata = next_metadata;
-  }
-//}
-  if (merged == 1){
-    return true;
-  } 
-  else{
-    return false;
-  }
-}
-
-
 // freeされた領域のメタデータを受け取り、空きリストに追加
 void my_add_to_free_list(my_metadata_t *metadata) {
   //printf("my_add_to_free_list\n");
@@ -137,10 +70,8 @@ void my_add_to_free_list(my_metadata_t *metadata) {
     idx = 4;
   }
   metadata->next = my_heap[idx].free_head; // 先頭に（から）追加していくイメージ
-  //printf("after metadata->next = my_heap[idx].free_head\n");
   my_heap[idx].free_head = metadata;
-  //printf("finish\n");
-/*
+
   my_metadata_t *tmp_metadata ; // リスト上で見ていくときの今見ているノード(今見ているメタデータ)
   my_metadata_t *prev_metadata; // リスト上でのtmp_metadataの一つ前のノード
   my_metadata_t *next_metadata; // リスト上でのtmp_metadataの次のノード
@@ -158,15 +89,12 @@ void my_add_to_free_list(my_metadata_t *metadata) {
       printf("found\n"); 
       new_metadata->size = metadata->size + tmp_metadata->size + sizeof(*metadata); // 左側のmetadataのサイズを更新 // これのサイズを変えたら別のidxになるかもだから入れ直さなきゃ..?
       printf("new_metadataに更新したサイズを入れた!\n");
-      //new_metadata->next = tmp_metadata -> next;
+      new_metadata->next = tmp_metadata -> next;
       printf("before remove\n");
       my_remove_from_free_list(tmp_metadata,prev_metadata); // 右側にあるメタデータtmpをfree_listから削除
-      printf("after remove1\n"); 
-      new_metadata->next = NULL; // malloc_challenge.bin: malloc3.c:66: my_add_to_free_list: Assertion `!metadata->next' failed.つまりnew_metadataのnextがNULLじゃないってこと?
-      printf("new_metadata->next = NULL\n");// ここまでで止まる
-      my_add_to_free_list(new_metadata); // sizeが変わったmetadata=new_metadataをfree_list_binに入れ直す(多分このadd関数は、他のどのリストにも入れるノードが入っていないことが前提だからこのノードがnextを持っていると怒られる)
-      printf("after add\n"); 
-      new_metadata->next = tmp_metadata -> next;
+      printf("after remove1\n");
+      my_add_to_free_list(new_metadata); // sizeが変わったmetadata=new_metadataをfree_list_binに入れ直す
+      printf("after add\n"); // この一行上でセグフォ
       my_remove_from_free_list(metadata,NULL); // サイズが更新される前のメタデータ、つまりmetadataは削除する。metadataはリストの先頭に入れられるはずだからprevはNULL
       printf("after remove2\n");
       //printf("after remove\n");
@@ -180,7 +108,7 @@ void my_add_to_free_list(my_metadata_t *metadata) {
   // 特にマージできそうなやつはなかった
   return;
   //printf("Finished adding metadata->size:%ld\n",metadata->size);
-*/
+
 }
 
 
@@ -367,10 +295,7 @@ void my_free(void *ptr) {
   my_metadata_t *metadata = (my_metadata_t *)ptr - 1;
   //munmap_to_system(ptr,metadata->size); // OSに返すわけではない、あくまで今の確保済みの領域を空き領域に追加するだけ
   // Add the free slot to the free list.
-  //if(right_merge(metadata)==false){
-  right_merge(metadata);
   my_add_to_free_list(metadata);
-  //}
 }
 
 // This is called at the end of each challenge.

@@ -76,10 +76,8 @@ int right_merge(my_metadata_t *metadata){
   // 右側マージ // 同じbinのリストの中でしか探索していない
 
   while(tmp_metadata != &my_heap[idx].dummy){ // リストでつながっているmetadataを順に追っていく
-    //printf("after while\n"); // while文にはたくさん入っている
-    
+    //printf("after while\n");
     if(tmp_metadata == NULL){ // next_metadata = tmp_metadata->next; がセグフォになるから
-      printf("2\n"); // if文に入らないのはここでbreakしているから...->ここのif文の条件がおかしい
       break;
     }
     next_metadata = tmp_metadata->next; // ここでセグフォ -> metadata->next->nextがない...? // next_metadataを用意しているのは、途中でmetadataが削除されるとmetadata->nextはNULLになる(セグフォになった気がする)
@@ -107,7 +105,7 @@ int right_merge(my_metadata_t *metadata){
       //printf("after remove2\n");
 
     }
-    //printf("After if \n");
+    printf("After if \n");
     prev_metadata = tmp_metadata; // これだけだと次にfor文最初に行ったときにtmp_metadata->nextが存在しなくなる
     tmp_metadata = next_metadata;
   }

@@ -76,10 +76,8 @@ int right_merge(my_metadata_t *metadata){
   // 右側マージ // 同じbinのリストの中でしか探索していない
 
   while(tmp_metadata != &my_heap[idx].dummy){ // リストでつながっているmetadataを順に追っていく
-    //printf("after while\n"); // while文にはたくさん入っている
-    
+    //printf("after while\n");
     if(tmp_metadata == NULL){ // next_metadata = tmp_metadata->next; がセグフォになるから
-      printf("2\n"); // if文に入らないのはここでbreakしているから...->ここのif文の条件がおかしい
       break;
     }
     next_metadata = tmp_metadata->next; // ここでセグフォ -> metadata->next->nextがない...? // next_metadataを用意しているのは、途中でmetadataが削除されるとmetadata->nextはNULLになる(セグフォになった気がする)
@@ -87,10 +85,8 @@ int right_merge(my_metadata_t *metadata){
     new_metadata = metadata; // 一度初期化しないとセグフォ
     //printf("1\n");
     // 右隣のマージできそうなものが見つかった
-
-    // なぜif文に入らない！！？？
     if(tmp_metadata == (my_metadata_t*)((char*)metadata + sizeof(*metadata) + metadata->size)){ // 今リスト上で確認しているメタデータが、メモリ上でmetadataの右隣にある空き領域のメタデータだったら
-      printf("found\n"); 
+      //printf("found\n"); 
       merged = 1;
       new_metadata->size = metadata->size + tmp_metadata->size + sizeof(*metadata); // 左側のmetadataのサイズを更新 // これのサイズを変えたら別のidxになるかもだから入れ直さなきゃ..?
       //printf("new_metadataに更新したサイズを入れた!\n");

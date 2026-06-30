@@ -77,9 +77,7 @@ int right_merge(my_metadata_t *metadata){
 
   while(tmp_metadata != &my_heap[idx].dummy){ // リストでつながっているmetadataを順に追っていく
     //printf("after while\n"); // while文にはたくさん入っている
-    
     if(tmp_metadata == NULL){ // next_metadata = tmp_metadata->next; がセグフォになるから
-      printf("2\n"); // if文に入らないのはここでbreakしているから...->ここのif文の条件がおかしい
       break;
     }
     next_metadata = tmp_metadata->next; // ここでセグフォ -> metadata->next->nextがない...? // next_metadataを用意しているのは、途中でmetadataが削除されるとmetadata->nextはNULLになる(セグフォになった気がする)
