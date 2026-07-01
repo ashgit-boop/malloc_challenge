@@ -73,6 +73,9 @@ void right_merge(my_metadata_t *metadata){ // 引数はfreeしたメタデータ
     //printf("metadata->right:%p\n",metadata->right);// metadata -> right がNULLだったからそのis_freeはもちろんセグフォ
     
     if(metadata->right == NULL){ // metadataの右隣がない、つまりmetadataが一番右端っこのとき
+        printf("metadata : %p\n",metadata);
+        printf("metadata->right : %p\n",metadata->right); 
+        my_add_to_free_list(metadata);
         return;
     }
 
@@ -87,25 +90,33 @@ void right_merge(my_metadata_t *metadata){ // 引数はfreeしたメタデータ
         //printf("before remove in right merge\n");
         my_remove_from_free_list(old_metadata,old_metadata->previous);
         // 領域を統合
-        //printf("before merging\n");
+        printf("after remove2\n");
         metadata->size = old_metadata->size + right_metadata->size + sizeof(*right_metadata); // サイズを拡張
         // サイズを更新したmetadataを入れ直す
-        my_add_to_free_list(metadata); 
+        //my_add_to_free_list(metadata); 
         //printf("after updating size\n");
         metadata->right = right_metadata->right;
         //printf("after changing right\n");
         //printf("metadata->right:%p\n",metadata->right);
-        if(metadata->right == NULL){
-            return;
+        if(metadata->right != NULL){
+            metadata->right->left = metadata; // ここでセグフォ、多分metadata->rightがNULLだと思う
         }
-        metadata->right->left = metadata; // ここでセグフォ、多分metadata->rightがNULLだと思う
+        //metadata->right->left = metadata; // ここでセグフォ、多分metadata->rightがNULLだと思う
         //printf("after changing left of the right\n");
         //metadata->next = NULL; // ここをNULLにしておかないと、次のmy_add_to_free_list でassertionに引っかかる->my_removeですでにNULLにされているのでは
-
-        if(metadata -> right -> is_free == true){ // 統合したあとのメモリ領域上で、さらに右隣が空き領域のとき、もう一度right_mergeする。
+        // サイズを更新したmetadataを入れ直す
+        //my_add_to_free_list(metadata);
+        //printf("after add in my_free()\n"); 
+        //printf("metadata->right : %p\n",metadata->right); // こいつがNULL
+        if(metadata->right != NULL && metadata -> right -> is_free == true){ // 統合したあとのメモリ領域上で、さらに右隣が空き領域のとき、もう一度right_mergeする。
+            //printf("metadata : %p\n",metadata);
             right_merge(metadata);
+            printf("after add in if in my_free()\n");
         }
+        printf("after if in my_free()\n");
     }
+    //printf("metadata : %p\n",metadata);
+    my_add_to_free_list(metadata);
     return;
 }
 
@@ -130,7 +141,7 @@ void my_add_to_free_list(my_metadata_t *metadata) {
   if(metadata->next != NULL){
     metadata->next->previous = metadata;
   }
-  //printf("after metadata->next = my_heap[idx].free_head\n");
+  printf("after metadata->next = my_heap[idx].free_head\n");
   my_heap[idx].free_head = metadata;
   metadata->is_free = true;
 }
@@ -138,7 +149,7 @@ void my_add_to_free_list(my_metadata_t *metadata) {
 
 // free_listに入っていたメタデータを（使うことになったから）空きリストから削除する
 void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
-  //printf("my_remove_from_free_list\n");
+  printf("my_remove_from_free_list\n");
   int idx;
 
   if (prev) { // もし消すやつが先頭じゃなくてprevがいれば
@@ -164,7 +175,7 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
   //printf("before metadata->next = NULL\n");
   metadata->next = NULL;
   //printf("after metadata->next = NULL\n");
-  metadata -> is_free = false;
+  //metadata -> is_free = false;
   //printf("after metadata -> is_free = false\n");
 }
 
@@ -215,11 +226,11 @@ void *my_malloc(size_t size) {
     min_prev = NULL;
     int best_fit_found = 0; // bestfitが見つかった時に1、見つかっていないときには０
 
-    while (metadata!=&my_heap[idx].dummy && metadata != NULL) { 
-
+    while (metadata!=NULL) { 
+      //printf("while\n");
       // このif文の条件は、最初はmetadata == dummyだからmetadata->size = 0になる。if文に入らない
       //printf("size:%ld,metadata->size:%ld,min_size:%d\n",size,metadata->size,min_size);
-      //printf("first  metadata : %p\n",metadata);
+      printf("first  metadata : %p\n",metadata);
       if(size <= metadata->size && metadata->size < min_size ){ // この最初の条件size <= metadata->sizeを忘れると正しい大きさのメモリ確保ができない
         printf("start if in while in my_malloc()\n");
         min_prev = prev;
@@ -232,8 +243,10 @@ void *my_malloc(size_t size) {
       }
       //printf("after if in while in my_malloc()\n");
       prev = metadata;
-      //printf("metadata : %p\n",metadata);
+      printf("metadata : %p\n",metadata);
+      
       metadata = metadata->next;
+      
     }
     printf("after while in my_malloc()\n");
     //printf("idx:%d\n",idx);
@@ -332,6 +345,7 @@ void *my_malloc(size_t size) {
     }
     
     printf("3 in my_malloc\n");
+    new_metadata->previous = NULL;
     new_metadata -> is_free = true;
 
     // Add the remaining free slot to the free list.
@@ -356,9 +370,11 @@ void my_free(void *ptr) {
   my_metadata_t *metadata = (my_metadata_t *)ptr - 1;
   
   // Add the free slot to the free list.
-  //printf("before add in my_free()\n");
-  my_add_to_free_list(metadata);
+  printf("before add in my_free()\n");
+  //my_add_to_free_list(metadata);
   //if(right_merge(metadata)==false){
+  printf("before right_merge in my_free()\n");
+  
   right_merge(metadata); // right_mergeがなければassertなしで"An allocated object is broken!"もなしで動きそう->構造体のright,leftの管理がうまく行っていないもしくはright_mergeの構造がやらかしている
   printf("finished right_merge\n");
   //my_add_to_free_list(metadata);
