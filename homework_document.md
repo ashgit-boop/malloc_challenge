@@ -2,13 +2,29 @@
 ## Objective: Implement malloc !!
 ## Functions:
 
+- ### int calculate_index(size_t size) :
+     #### Calculate the index of the free_list bin from given size.
+
+    ```c
+    // 与えられたメモリのサイズから、free_list_binのどこのindexのリストに入るかを計算
+    int calculate_index(size_t size){
+        int index;
+
+        index = size / 256;
+        
+        if(index >= 4){
+            index = 4;
+        }
+        return index;
+    }
+    ``` 
+
 
 - ### void right_merge(my_metadata_t *metadata) : 
     #### Implement merge to the right. This function takes metadata which was freed as an argument.
     ```c
     // 右結合をする
     void right_merge(my_metadata_t *metadata){ // 引数はfreeしたメタデータ
-
     my_metadata_t *right_metadata; // metadataの右側にある領域
 
         // もしmetadataのメモリ上での右隣の領域が空き領域ではなかったら、何もせずにサヨナラ
@@ -41,7 +57,7 @@
 
     ```
 
-- ### void initialize() : 
+- ### void initialize() :  
     #### Initialize the information of the my_heap.
     ```c
     void my_initialize() {
@@ -54,22 +70,52 @@
         }
     } 
     ```    
-- ### int calculate_index(size_t size) :
-     #### Calculate the index of the free_list bin from given size.
+
+- ### void my_add_to_free_list(my_metadata_t *metadata) : 
+    #### Add metadata which was freed to the apropriate free_list bin.
 
     ```c
-    // 与えられたメモリのサイズから、free_list_binのどこのindexのリストに入るかを計算
-    int calculate_index(size_t size){
-        int index;
+    // freeされた領域のメタデータを受け取り、空きリストに追加
+    void my_add_to_free_list(my_metadata_t *metadata) {
 
-        index = size / 256;
-        
-        if(index >= 4){
-            index = 4;
-        }
-        return index;
+    int idx; // free_list binの添え字をidxとする
+
+    assert(!metadata->next);
+    idx = calculate_index(metadata->size);
+
+    metadata->previous = NULL;
+    metadata->next = my_heap[idx].free_head; // 先頭に（から）追加していくイメージ
+    if(metadata->next != NULL){
+        metadata->next->previous = metadata;
     }
-    ``` 
+    my_heap[idx].free_head = metadata;
+    metadata->is_free = true;
+    }
+    ```    
+
+
+- ### void *my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) :  
+    #### Remove specified metadata from free_list.
+    ```c
+    // free_listに入っていたメタデータを（使うことになったから）空きリストから削除する
+    void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
+
+        int idx;
+
+        idx = calculate_index(metadata->size);
+
+        if (prev) { // もし消すやつが先頭じゃなくてprevがいれば
+
+            prev->next = metadata->next;
+
+            if(metadata->next != &my_heap[idx].dummy){        
+                metadata->next->previous = prev;
+            }
+
+        }
+    }
+    ```     
+
 - ### void *my_malloc(size_t size) :
     #### Allocate memory. This function takes the size of metadata to allocate as an argument. If there was no memory to be allocated, get a new memory area from OS and allocate memory.
     ```c
@@ -226,3 +272,8 @@
     my_add_to_free_list(metadata); //　右結合したら空きリストに追加
     }
     ```
+
+
+## What I thought :
+
+右結合だけでは思ったより改善しない
