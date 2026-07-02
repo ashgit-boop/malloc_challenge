@@ -56,23 +56,14 @@ my_heap_t my_heap[5]; // free list binを作成0~4の添え字になること想
 //
 // Helper functions (feel free to add/remove/edit!)
 //
-
-// 与えられたメモリのサイズから、free_list_binのどこのindexのリストに入るかを計算
-int calculate_index(size_t size){
-    int index;
-
-    index = size / 256;
-    
-    if(index >= 4){
-        index = 4;
-    }
-    return index;
-}
+void my_add_to_free_list(my_metadata_t *metadata);
+void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev);
 
 // 右結合をする
 void right_merge(my_metadata_t *metadata){ // 引数はfreeしたメタデータ
 
   my_metadata_t *right_metadata; // metadataの右側にある領域
+  my_metadata_t *old_metadata; // metadataの更新前のやつ
 
     // もしmetadataのメモリ上での右隣の領域が空き領域ではなかったら、何もせずにサヨナラ
 
@@ -109,8 +100,11 @@ void my_add_to_free_list(my_metadata_t *metadata) {
   int idx; // free_list binの添え字をidxとする
 
   assert(!metadata->next);
-  idx = calculate_index(metadata->size);
 
+  idx = metadata->size / 256;
+  if(idx>= 4){
+    idx = 4;
+  }
   metadata->previous = NULL;
   metadata->next = my_heap[idx].free_head; // 先頭に（から）追加していくイメージ
   if(metadata->next != NULL){
@@ -126,7 +120,10 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
   int idx;
 
-  idx = calculate_index(metadata->size);
+  idx = metadata->size / 256;
+  if(idx>= 4){
+    idx = 4;
+  }
 
   if (prev) { // もし消すやつが先頭じゃなくてprevがいれば
 
@@ -140,6 +137,10 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
   else { // もし消すやつが先頭だったら(metadata->previouはすでにNULLのハズ)
 
+    idx = metadata->size / 256;
+    if(idx>=4){
+      idx = 4;
+    }
     my_heap[idx].free_head = metadata->next;
     if (my_heap[idx].free_head != &my_heap[idx].dummy)
     my_heap[idx].free_head->previous = NULL;
@@ -158,11 +159,11 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
 void my_initialize() {
   for(int idx=0;idx<5;idx++){
-  my_heap[idx].free_head = &my_heap[idx].dummy; // 先頭はdummy
-  my_heap[idx].dummy.size = 0; // dummyのサイズは0
-  my_heap[idx].dummy.next = NULL; // dummyの次のノードは無い
-  my_heap[idx].dummy.previous = NULL; // dummyの前のノードは無い
-  my_heap[idx].dummy.is_free = false; // このノードは使えない
+  my_heap[idx].free_head = &my_heap[idx].dummy;
+  my_heap[idx].dummy.size = 0;
+  my_heap[idx].dummy.next = NULL;
+  my_heap[idx].dummy.previous = NULL;
+  my_heap[idx].dummy.is_free = true; // 本当に？
   }
 } 
 
@@ -181,7 +182,10 @@ void *my_malloc(size_t size) {
   size_t min_size = 10000; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
   int index;
   
-  index = calculate_index(size);
+  index=size / 256;
+  if(index >= 4){
+    index = 4;
+  }
 
   for(int idx=index;idx<5;idx++){
     metadata = my_heap[idx].free_head;
@@ -190,7 +194,7 @@ void *my_malloc(size_t size) {
     int best_fit_found = 0; // bestfitが見つかった時に1、見つかっていないときには０
 
     while (metadata!=&my_heap[idx].dummy) { 
-        // もし条件に合うものが見つかったら使用するメモリのメタデータを変更
+
       if(size <= metadata->size && metadata->size < min_size ){ // この最初の条件size <= metadata->sizeを忘れると正しい大きさのメモリ確保ができない
 
         min_prev = metadata->previous;
@@ -232,7 +236,7 @@ void *my_malloc(size_t size) {
     metadata->right = NULL;
     metadata->is_free = true;
     // Add the memory region to the free list.
-
+    //printf("before my_add_to_list  metadata->size : %ld\n",metadata->size);
     my_add_to_free_list(metadata); // ここは一度しか呼ばれていない
     // Now, try my_malloc() again. This should succeed.
     return my_malloc(size);
@@ -246,13 +250,20 @@ void *my_malloc(size_t size) {
   void *ptr = min_metadata + 1;
   size_t remaining_size = min_metadata->size - size;
   // Remove the free slot from the free list.
+  //printf("before remove in my_malloc\n");
+
+  //printf("min_metadata=%p\n", min_metadata);
+  //printf("min_prev=%p\n", min_prev);
+  //printf("min_metadata->previous=%p\n", min_metadata->previous);
 
   my_remove_from_free_list(min_metadata, min_prev);
-
+  //printf("after remove in my_malloc\n");
   min_metadata -> is_free = false;
+  //printf("after metadata -> is_free = false;\n");
 
+  //printf("before if in my_malloc\n");
   if (remaining_size > sizeof(my_metadata_t)) { // 残っている空き領域がもうメタデータも置けないくらい小さいというわけではなければ
-
+    //printf("after if in my_malloc\n");
     // Shrink the metadata for the allocated object
     // to separate the rest of the region corresponding to remaining_size.
     // If the remaining_size is not large enough to make a new metadata,
@@ -275,23 +286,32 @@ void *my_malloc(size_t size) {
     // metadataは確保済み領域のメタデータを表す。
     my_metadata_t *old_right=NULL;
     old_right = min_metadata -> right; // metadataが右端の領域だったときにold_rightはNULLになる
+    //printf("after making old_right in my_malloc\n");
 
     min_metadata -> right = new_metadata;
+    //metadata -> left = NULL; // これはまずい
     min_metadata -> is_free = false;
     // new_metadataは残った空き領域のメタデータを表す。
+    //printf("before new_metadata update in my_malloc\n");
     new_metadata -> left = min_metadata;
-
+    //printf("1 in my_malloc\n");
     new_metadata -> right = old_right; 
+    //printf("2 in my_malloc\n");
+    //printf("old_right : %p\n",old_right );
 
     if(old_right != NULL){
         old_right -> left = new_metadata; // ここでセグフォ->old_rightがNULLだった
     }
     
+    //printf("3 in my_malloc\n");
     new_metadata->previous = NULL;
     new_metadata -> is_free = true;
 
     // Add the remaining free slot to the free list.
+    //printf("new_metadata->size:%ld\n",new_metadata->size);
+    //printf("before my_add in my_malloc\n");
     my_add_to_free_list(new_metadata);
+    //printf("after my_add in my_malloc\n");
   }
   return ptr;
 } // my_mallocここまで
@@ -299,6 +319,7 @@ void *my_malloc(size_t size) {
 // This is called every time an object is freed.  You are not allowed to
 // use any library functions other than mmap_from_system / munmap_to_system.
 void my_free(void *ptr) {
+  //printf("my_free\n");
   // Look up the metadata. The metadata is placed just prior to the object.
   //
   // ... | metadata | object | ...
@@ -308,8 +329,15 @@ void my_free(void *ptr) {
   my_metadata_t *metadata = (my_metadata_t *)ptr - 1;
   
   // Add the free slot to the free list.
-  right_merge(metadata); // 右結合
-  my_add_to_free_list(metadata); //　右結合したら空きリストに追加
+  //printf("before add in my_free()\n");
+  //my_add_to_free_list(metadata);
+  //if(right_merge(metadata)==false){
+  //printf("before right_merge in my_free()\n");
+  
+  right_merge(metadata); // right_mergeがなければassertなしで"An allocated object is broken!"もなしで動きそう->構造体のright,leftの管理がうまく行っていないもしくはright_mergeの構造がやらかしている
+  //printf("finished right_merge\n");
+  my_add_to_free_list(metadata);
+  //}
 }
 
 // This is called at the end of each challenge.

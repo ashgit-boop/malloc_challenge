@@ -110,7 +110,10 @@ void my_add_to_free_list(my_metadata_t *metadata) {
 
   assert(!metadata->next);
   idx = calculate_index(metadata->size);
-
+  idx = metadata->size / 256;
+  if(idx>= 4){
+    idx = 4;
+  }
   metadata->previous = NULL;
   metadata->next = my_heap[idx].free_head; // 先頭に（から）追加していくイメージ
   if(metadata->next != NULL){
@@ -126,7 +129,10 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
   int idx;
 
-  idx = calculate_index(metadata->size);
+  idx = metadata->size / 256;
+  if(idx>= 4){
+    idx = 4;
+  }
 
   if (prev) { // もし消すやつが先頭じゃなくてprevがいれば
 
@@ -140,6 +146,10 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
   else { // もし消すやつが先頭だったら(metadata->previouはすでにNULLのハズ)
 
+    idx = metadata->size / 256;
+    if(idx>=4){
+      idx = 4;
+    }
     my_heap[idx].free_head = metadata->next;
     if (my_heap[idx].free_head != &my_heap[idx].dummy)
     my_heap[idx].free_head->previous = NULL;
@@ -181,7 +191,10 @@ void *my_malloc(size_t size) {
   size_t min_size = 10000; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
   int index;
   
-  index = calculate_index(size);
+  index=size / 256;
+  if(index >= 4){
+    index = 4;
+  }
 
   for(int idx=index;idx<5;idx++){
     metadata = my_heap[idx].free_head;

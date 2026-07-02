@@ -181,7 +181,10 @@ void *my_malloc(size_t size) {
   size_t min_size = 10000; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
   int index;
   
-  index = calculate_index(size);
+  index=size / 256;
+  if(index >= 4){
+    index = 4;
+  }
 
   for(int idx=index;idx<5;idx++){
     metadata = my_heap[idx].free_head;

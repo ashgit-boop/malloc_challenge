@@ -73,6 +73,7 @@ int calculate_index(size_t size){
 void right_merge(my_metadata_t *metadata){ // 引数はfreeしたメタデータ
 
   my_metadata_t *right_metadata; // metadataの右側にある領域
+  my_metadata_t *old_metadata; // metadataの更新前のやつ
 
     // もしmetadataのメモリ上での右隣の領域が空き領域ではなかったら、何もせずにサヨナラ
 
@@ -109,6 +110,7 @@ void my_add_to_free_list(my_metadata_t *metadata) {
   int idx; // free_list binの添え字をidxとする
 
   assert(!metadata->next);
+
   idx = calculate_index(metadata->size);
 
   metadata->previous = NULL;
@@ -126,8 +128,7 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
   int idx;
 
-  idx = calculate_index(metadata->size);
-
+  calculate_index(metadata->size);
   if (prev) { // もし消すやつが先頭じゃなくてprevがいれば
 
     prev->next = metadata->next;
@@ -139,6 +140,8 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
   }
 
   else { // もし消すやつが先頭だったら(metadata->previouはすでにNULLのハズ)
+
+    calculate_index(metadata->size);
 
     my_heap[idx].free_head = metadata->next;
     if (my_heap[idx].free_head != &my_heap[idx].dummy)

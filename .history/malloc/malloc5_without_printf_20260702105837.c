@@ -56,23 +56,14 @@ my_heap_t my_heap[5]; // free list binを作成0~4の添え字になること想
 //
 // Helper functions (feel free to add/remove/edit!)
 //
-
-// 与えられたメモリのサイズから、free_list_binのどこのindexのリストに入るかを計算
-int calculate_index(size_t size){
-    int index;
-
-    index = size / 256;
-    
-    if(index >= 4){
-        index = 4;
-    }
-    return index;
-}
+void my_add_to_free_list(my_metadata_t *metadata);
+void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev);
 
 // 右結合をする
 void right_merge(my_metadata_t *metadata){ // 引数はfreeしたメタデータ
 
   my_metadata_t *right_metadata; // metadataの右側にある領域
+  my_metadata_t *old_metadata; // metadataの更新前のやつ
 
     // もしmetadataのメモリ上での右隣の領域が空き領域ではなかったら、何もせずにサヨナラ
 
@@ -109,8 +100,11 @@ void my_add_to_free_list(my_metadata_t *metadata) {
   int idx; // free_list binの添え字をidxとする
 
   assert(!metadata->next);
-  idx = calculate_index(metadata->size);
 
+  idx = metadata->size / 256;
+  if(idx>= 4){
+    idx = 4;
+  }
   metadata->previous = NULL;
   metadata->next = my_heap[idx].free_head; // 先頭に（から）追加していくイメージ
   if(metadata->next != NULL){
@@ -126,7 +120,10 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
   int idx;
 
-  idx = calculate_index(metadata->size);
+  idx = metadata->size / 256;
+  if(idx>= 4){
+    idx = 4;
+  }
 
   if (prev) { // もし消すやつが先頭じゃなくてprevがいれば
 
@@ -140,6 +137,10 @@ void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
 
   else { // もし消すやつが先頭だったら(metadata->previouはすでにNULLのハズ)
 
+    idx = metadata->size / 256;
+    if(idx>=4){
+      idx = 4;
+    }
     my_heap[idx].free_head = metadata->next;
     if (my_heap[idx].free_head != &my_heap[idx].dummy)
     my_heap[idx].free_head->previous = NULL;
@@ -162,7 +163,7 @@ void my_initialize() {
   my_heap[idx].dummy.size = 0; // dummyのサイズは0
   my_heap[idx].dummy.next = NULL; // dummyの次のノードは無い
   my_heap[idx].dummy.previous = NULL; // dummyの前のノードは無い
-  my_heap[idx].dummy.is_free = false; // このノードは使えない
+  my_heap[idx].dummy.is_free = true; 
   }
 } 
 
@@ -181,7 +182,10 @@ void *my_malloc(size_t size) {
   size_t min_size = 10000; // 最初はこの値より小さいサイズの空き領域をmin_metadataにする
   int index;
   
-  index = calculate_index(size);
+  index=size / 256;
+  if(index >= 4){
+    index = 4;
+  }
 
   for(int idx=index;idx<5;idx++){
     metadata = my_heap[idx].free_head;
@@ -190,7 +194,7 @@ void *my_malloc(size_t size) {
     int best_fit_found = 0; // bestfitが見つかった時に1、見つかっていないときには０
 
     while (metadata!=&my_heap[idx].dummy) { 
-        // もし条件に合うものが見つかったら使用するメモリのメタデータを変更
+
       if(size <= metadata->size && metadata->size < min_size ){ // この最初の条件size <= metadata->sizeを忘れると正しい大きさのメモリ確保ができない
 
         min_prev = metadata->previous;
