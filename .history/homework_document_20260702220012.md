@@ -1,26 +1,9 @@
 # Step Week7 HomeWork
 ## Objective: Implement malloc !!
-malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_and_left_merge.c
 ## Functions:
 
-- ### typedef struct my_metadata_t : 
-    - #### Created the `is_free` so that immediately determine (without checking the `free_list`) whether the area pointed to by `metadata` is free.
-    - #### Created `next` , `previous` , `left` and `right` to reduce the times of calculations.
-    - #### I thought that the memory utilization wasn't increasing because this structure is so large.
-    ```c
-    // 空き領域の前に、その領域のサイズと次の空き領域へのポインタの情報を置く。
-    typedef struct my_metadata_t { // ここの構造体のサイズが大きいからutilization上がらないんじゃないか
-    size_t size; // サイズ
-    struct my_metadata_t *next; // リスト上における次のmeta_dataへのポインタ
-    struct my_metadata_t *previous; // リスト上における前のmetadataへのポインタ
-    struct my_metadata_t *left; // メモリ上で左隣にある領域のメタデータ 
-    struct my_metadata_t *right; // メモリ上で右隣にある領域のメタデータ
-    bool is_free; // このメタデータをもつ領域が空き領域かどうかを表す
-    } my_metadata_t; // 
-    ```
 - ### int calculate_index(size_t size) :
-     - #### Calculate the index of the free list bin from given size.
-     - #### I adjusted the number of bins and tried various values, but when the size of the `my_heap_t` array was 50 and the number of beams was 80, I found the best balance between speed and utilization.
+     #### Calculate the index of the free_list bin from given size.
 
     ```c
     // 与えられたメモリのサイズから、free_list_binのどこのindexのリストに入るかを計算
@@ -36,56 +19,14 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
     }
     ``` 
 
-- ### my_metadata_t* left_merge(my_metadata_t *metadata):
-    - #### Implement merge to the left. This function takes metadata which was freed as an argument, and return `left_metadata`, which is the metadata on the far left.
-    - #### If the area immediately to the left of the `metadata` in memory is not free, do nothing.
-    - #### If the area to the left of that is also free space, do `left_merge()` again.
-
+- ### void left_merge(my_metadata_t *metadata):
+    #### Implement merge to the left. This function takes metadata which was freed as an argument.
     ```c
-    // 左結合をする
-    my_metadata_t *left_merge(my_metadata_t *metadata){
-        my_metadata_t *left_metadata=NULL; // metadataの左側にある領域
-
-        // もしmetadataのメモリ上での左隣の領域が空き領域ではなかったら、何もせずにサヨナラ
-
-        if(metadata->left == NULL){ // metadataの左隣がない、つまりmetadataが一番左端っこのとき左側マージできない
-            left_metadata = metadata;
-            return left_metadata;
-        }
-
-        left_metadata = metadata -> left; // この時点でleft_metadataはNULLでないことが確定
-
-        if(left_metadata -> is_free == true){ // もしmetadataの左隣の領域が空き領域だったら、その領域をリスト上で探して空き領域リストに加える
-            
-            // 領域を統合
-            my_remove_from_free_list(left_metadata,left_metadata->previous);
-            left_metadata->size = left_metadata->size + metadata->size + sizeof(*metadata); // サイズを拡張
-            
-            // サイズを更新したleft_metadataを入れ直す
-            left_metadata->right = metadata->right; // これがNULLらしい
-
-            if(left_metadata->right != NULL){
-                left_metadata->right->left = left_metadata;
-            }
-
-            // 統合したあとのメモリ領域上で、さらに右隣が空き領域のとき、もう一度right_mergeする。
-            if(left_metadata->left != NULL && left_metadata -> left -> is_free == true){ 
-                left_metadata = left_merge(left_metadata);
-            }
-        }
-        else{
-            left_metadata = metadata;
-        }
-        return left_metadata;
-    }
-
-
+    
     ```
 
 - ### void right_merge(my_metadata_t *metadata) : 
-    - #### Implement merge to the right. This function takes `metadata` which was freed as an argument.
-    - #### If the area immediately to the right of the `metadata` in memory is not free, do nothing.
-    - #### If the area to the left of that is also free space, do `right_merge()` again.
+    #### Implement merge to the right. This function takes metadata which was freed as an argument.
     ```c
     // 右結合をする
     void right_merge(my_metadata_t *metadata){ // 引数はfreeしたメタデータ
@@ -122,7 +63,7 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
     ```
 
 - ### void initialize() :  
-    #### Initialize the information of the `my_heap[]`.
+    #### Initialize the information of the my_heap.
     ```c
     void my_initialize() {
         for(int idx=0;idx<5;idx++){
@@ -136,7 +77,7 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
     ```    
 
 - ### void my_add_to_free_list(my_metadata_t *metadata) : 
-    - #### Add metadata which was freed to the appropriate free_list bin.
+    #### Add metadata which was freed to the apropriate free_list bin.
 
     ```c
     // freeされた領域のメタデータを受け取り、空きリストに追加
@@ -159,7 +100,7 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
 
 
 - ### void *my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) :  
-    - #### Remove specified metadata from free_list.
+    #### Remove specified metadata from free_list.
     ```c
     // free_listに入っていたメタデータを（使うことになったから）空きリストから削除する
     void my_remove_from_free_list(my_metadata_t *metadata, my_metadata_t *prev) {
@@ -181,8 +122,7 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
     ```     
 
 - ### void *my_malloc(size_t size) :
-    - #### Allocate memory. This function takes the size of metadata to allocate as an argument. If there was no memory to be allocated, get a new memory area from OS and allocate memory.
-    - #### In `my_heap[]`, the size of a node increases as the index increases, so once an element that meets the condition is found, there is no need to search further through the list.(best-fit)
+    #### Allocate memory. This function takes the size of metadata to allocate as an argument. If there was no memory to be allocated, get a new memory area from OS and allocate memory.
     ```c
     void *my_malloc(size_t size) {
 
@@ -316,15 +256,13 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
 
 
 - ### my_free(void *ptr) :
-    - #### Free memory which was specified by the `ptr`. `ptr` is the pointer which points the head of the memory.
-    - #### If the sum of the size of the released metadata and the size of the metadata itself matches the total memory size of the page, return the memory to the OS.(munmap_to_system())
-    - #### Do `right_merge()` , `left_merge()`, and `add_to_free_list()`
+    #### Free memory which was specified by the ptr. ptr is the pointer which points the head of the memory.
     
     ```c
-        // This is called every time an object is freed.  You are not allowed to
+    // This is called every time an object is freed.  You are not allowed to
     // use any library functions other than mmap_from_system / munmap_to_system.
+
     void my_free(void *ptr) {
-        my_metadata_t* left_metadata;
 
     // Look up the metadata. The metadata is placed just prior to the object.
     //
@@ -333,22 +271,14 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
     //     metadata   ptr
 
     my_metadata_t *metadata = (my_metadata_t *)ptr - 1;
-    metadata -> is_free = true;
-    // もし
-    if(metadata->size == 4096 - sizeof(my_metadata_t)){
-        munmap_to_system(metadata,4096); 
-        return;
-    }
+    
     // Add the free slot to the free list.
     right_merge(metadata); // 右結合
-    left_metadata = left_merge(metadata); // 左結合
-    my_add_to_free_list(left_metadata); //　右結合したら空きリストに追加
+    my_add_to_free_list(metadata); //　右結合したら空きリストに追加
     }
     ```
 
 
-## What I found :
-- #### After applying best-fit, utilization got better sharply.
-- #### After applying free_list_bin, the speed got faster.
-- #### After applying `right_merge()` and `left_merge()`, the utilization wasn't good for Challenges 1–3.(The utilization when applying best-fit and free_list_bin was much better.) For Challenges 4 and 5, the values were slightly better, but there wasn't much of a difference.
-- #### I thought that the memory utilization wasn't increasing because this structure is so large. Perhaps the `next` in this structure is not necessary.
+## What I thought :
+
+右結合だけでは思ったより改善しない

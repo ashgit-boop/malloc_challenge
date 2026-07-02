@@ -1,6 +1,5 @@
 # Step Week7 HomeWork
 ## Objective: Implement malloc !!
-malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_and_left_merge.c
 ## Functions:
 
 - ### typedef struct my_metadata_t : 
@@ -182,7 +181,7 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
 
 - ### void *my_malloc(size_t size) :
     - #### Allocate memory. This function takes the size of metadata to allocate as an argument. If there was no memory to be allocated, get a new memory area from OS and allocate memory.
-    - #### In `my_heap[]`, the size of a node increases as the index increases, so once an element that meets the condition is found, there is no need to search further through the list.(best-fit)
+    - #### In `my_heap[]`, the size of a node increases as the index increases, so once an element that meets the condition is found, there is no need to search further through the list.
     ```c
     void *my_malloc(size_t size) {
 
@@ -347,8 +346,6 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
     ```
 
 
-## What I found :
-- #### After applying best-fit, utilization got better sharply.
-- #### After applying free_list_bin, the speed got faster.
-- #### After applying `right_merge()` and `left_merge()`, the utilization wasn't good for Challenges 1–3.(The utilization when applying best-fit and free_list_bin was much better.) For Challenges 4 and 5, the values were slightly better, but there wasn't much of a difference.
-- #### I thought that the memory utilization wasn't increasing because this structure is so large. Perhaps the `next` in this structure is not necessary.
+## What I thought :
+
+右結合だけでは思ったより改善しない

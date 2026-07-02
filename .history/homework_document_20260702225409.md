@@ -1,6 +1,5 @@
 # Step Week7 HomeWork
 ## Objective: Implement malloc !!
-malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_and_left_merge.c
 ## Functions:
 
 - ### typedef struct my_metadata_t : 
