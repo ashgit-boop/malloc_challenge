@@ -383,4 +383,3 @@ malloc_bestfit.c , malloc_free_list_bin.c ,malloc_right_merge.c , malloc_right_a
 
     }
     ```
-    #### The difference between the 2 structure is 8B. If this 8B were not, the utilization will soar.
